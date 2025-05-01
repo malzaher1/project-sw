@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:project/services/habit_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class HabitSelectionScreen extends StatefulWidget {
   @override
@@ -16,17 +15,7 @@ class _HabitSelectionScreenState extends State<HabitSelectionScreen> {
     'Educational': ['Read a book for 30 minutes', 'Learn a new word daily'],
   };
 
-  bool _isFirstTime = true;
-
-    Future<void> _checkIfFirstTime() async {
-    final prefs = await SharedPreferences.getInstance();
-    bool hasSelectedHabits = prefs.getBool('hasSelectedInitialHabits') ?? false;
-    setState(() {
-      _isFirstTime = !hasSelectedHabits;
-    });
-  }
-  
-    // To keep track of selected habits
+  // To keep track of selected habits
   final Set<String> _selectedHabits = {};
 
   void _toggleHabit(String habit, bool isSelected) {
@@ -56,17 +45,12 @@ class _HabitSelectionScreenState extends State<HabitSelectionScreen> {
         });
 
         await _habitService.saveSelectedHabitsWithCategory(habitsWithCategory); 
-      if (_isFirstTime) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('hasSelectedInitialHabits', true);
-        Navigator.pushReplacementNamed(context, '/main'); 
+        print('Proceeding with selected habits: $habitsWithCategory');
+        Navigator.pushReplacementNamed(context, '/daily_tracker');
       } else {
-        Navigator.pushReplacementNamed(context, '/daily_tracker'); 
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select at least one habit to continue.')),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please select at least one habit to continue.')),
+        );
       }
     }
 
