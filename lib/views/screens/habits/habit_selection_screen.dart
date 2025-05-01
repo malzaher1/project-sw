@@ -31,17 +31,28 @@ class _HabitSelectionScreenState extends State<HabitSelectionScreen> {
   
   final HabitService _habitService = HabitService();
 
-  void _proceedToDailyTracker() async { // Make it async
-    if (_selectedHabits.isNotEmpty) {
-      await _habitService.saveSelectedHabits(_selectedHabits); // Save habits
-      print('Proceeding with selected habits: $_selectedHabits');
-      Navigator.pushReplacementNamed(context, '/daily_tracker');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select at least one habit to continue.')),
-      );
+  void _proceedToDailyTracker() async {
+      if (_selectedHabits.isNotEmpty) {
+        Map<String, String?> habitsWithCategory = {};
+        _selectedHabits.forEach((habitName) {
+          String? category;
+          _predefinedHabits.forEach((cat, habits) {
+            if (habits.contains(habitName)) {
+              category = cat;
+            }
+          });
+          habitsWithCategory[habitName] = category;
+        });
+
+        await _habitService.saveSelectedHabitsWithCategory(habitsWithCategory); 
+        print('Proceeding with selected habits: $habitsWithCategory');
+        Navigator.pushReplacementNamed(context, '/daily_tracker');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Please select at least one habit to continue.')),
+        );
+      }
     }
-  }
 
   @override
   Widget build(BuildContext context) {

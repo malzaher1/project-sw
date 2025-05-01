@@ -30,7 +30,8 @@ class HabitService {
     return habits;
   }
 
-  Future<void> saveSelectedHabits(Set<String> selectedHabits) async {
+
+  Future<void> saveSelectedHabitsWithCategory(Map<String, String?> habitsWithCategory) async {
     User? user = _auth.currentUser;
     if (user == null) {
       print('No user logged in, cannot save habits.');
@@ -43,24 +44,67 @@ class HabitService {
           .doc(user.uid)
           .collection('habits');
 
-      for (String habitName in selectedHabits) {
-        // Check if the habit already exists to avoid duplicates (optional, depending on your needs)
+      for (var entry in habitsWithCategory.entries) {
+        String habitName = entry.key;
+        String? category = entry.value;
+
         QuerySnapshot<Map<String, dynamic>> existingHabit = await habitsRef
             .where('name', isEqualTo: habitName)
             .get();
 
         if (existingHabit.docs.isEmpty) {
-          await habitsRef.add({'name': habitName, 'isCompleted': false, 'progress': 0});
-          print('Saved habit: $habitName');
+          await habitsRef.add({
+            'name': habitName,
+            'category': category,
+            'isCompleted': false,
+            'progress': 0,
+          });
+          print('Saved habit: $habitName with category: $category');
         } else {
           print('Habit "$habitName" already exists for this user.');
         }
       }
     } catch (e) {
-      print('Error saving selected habits: $e');
-      // Optionally handle the error
+      print('Error saving selected habits with category: $e');
     }
   }
+
+  // You can now remove or comment out the old saveSelectedHabits method:
+  /*
+  Future<void> saveSelectedHabits(Set<String> selectedHabits) async { ... }
+  */
+
+  // Future<void> saveSelectedHabits(Set<String> selectedHabits) async {
+  //   User? user = _auth.currentUser;
+  //   if (user == null) {
+  //     print('No user logged in, cannot save habits.');
+  //     return;
+  //   }
+
+  //   try {
+  //     CollectionReference<Map<String, dynamic>> habitsRef = _firestore
+  //         .collection('users')
+  //         .doc(user.uid)
+  //         .collection('habits');
+
+  //     for (String habitName in selectedHabits) {
+  //       // Check if the habit already exists to avoid duplicates (optional, depending on your needs)
+  //       QuerySnapshot<Map<String, dynamic>> existingHabit = await habitsRef
+  //           .where('name', isEqualTo: habitName)
+  //           .get();
+
+  //       if (existingHabit.docs.isEmpty) {
+  //         await habitsRef.add({'name': habitName, 'isCompleted': false, 'progress': 0});
+  //         print('Saved habit: $habitName');
+  //       } else {
+  //         print('Habit "$habitName" already exists for this user.');
+  //       }
+  //     }
+  //   } catch (e) {
+  //     print('Error saving selected habits: $e');
+  //     // Optionally handle the error
+  //   }
+  // }
 
   Future<void> saveCustomHabit({
     required String name,
