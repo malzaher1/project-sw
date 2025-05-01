@@ -3,6 +3,7 @@ import 'package:project/views/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:project/views/screens/habits/add_custom_habit_screen.dart';
+import 'package:project/views/screens/habits/daily_habit_tracker_screen.dart';
 import 'firebase_options.dart';
 import 'package:project/views/screens/habits/habit_selection_screen.dart';
 
@@ -35,7 +36,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginScreen(), // Define the login route (optional as it's the home)
         '/habit_selection': (context) => HabitSelectionScreen(), 
         '/add_custom_habit': (context) => AddCustomHabitScreen(), // Add this line
-        '/daily_tracker': (context) => Placeholder(),
+        '/daily_tracker': (context) => DailyHabitTrackerScreen(),
 
       },
     );

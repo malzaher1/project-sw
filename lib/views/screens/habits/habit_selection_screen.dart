@@ -29,16 +29,16 @@ class _HabitSelectionScreenState extends State<HabitSelectionScreen> {
   }
 
   void _proceedToDailyTracker() {
-    if (_selectedHabits.isNotEmpty) {
-      // TODO: Save selected habits to Firebase and navigate to Daily Tracker
-      print('Proceeding with selected habits: $_selectedHabits');
-      Navigator.pushReplacementNamed(context, '/daily_tracker'); // We'll define this route later
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select at least one habit to continue.')),
-      );
-    }
+  if (_selectedHabits.isNotEmpty) {
+    // TODO: Save selected habits to Firebase for the user's daily tracking
+    print('Proceeding with selected habits: $_selectedHabits');
+    Navigator.pushReplacementNamed(context, '/daily_tracker');
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please select at least one habit to continue.')),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
