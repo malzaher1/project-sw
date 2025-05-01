@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:project/services/habit_service.dart';
 
 class AddCustomHabitScreen extends StatefulWidget {
+  const AddCustomHabitScreen({super.key});
+
   @override
   _AddCustomHabitScreenState createState() => _AddCustomHabitScreenState();
 }

@@ -43,4 +43,12 @@ class Habit {
       'progressToday': progressToday,
     };
   }
+
+
+
+
+
+
+
+  
 }
