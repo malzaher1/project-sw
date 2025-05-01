@@ -1,56 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:project/models/habit_model.dart';
-import 'package:project/services/habit_service.dart';
 
-class LoginScreen extends StatefulWidget {
+class SignupScreen extends StatefulWidget {
   @override
-  _LoginScreenState createState() => _LoginScreenState();
+  _SignupScreenState createState() => _SignupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignupScreenState extends State<SignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _displayNameController = TextEditingController();
   bool _isLoading = false;
   String _errorMessage = '';
-  // for checking if the user first time login or not
-  final HabitService _habitService = HabitService(); 
 
-  Future<void> _login() async {
+  Future<void> _signup() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
         _errorMessage = '';
       });
       try {
-        final UserCredential userCredential =
-            await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text.trim(),
-        );
-        if (userCredential.user != null) {
-          print('Login successful: ${userCredential.user!.uid}');
-          // Check if the user has any habits to determine if it's the first login
-          List<Habit> existingHabits = await _habitService.getTodayUserHabits();
-          if (existingHabits.isEmpty) {
-            Navigator.pushReplacementNamed(context, '/habit_selection');
-          } else {
-            Navigator.pushReplacementNamed(context, '/main');
+        if (_passwordController.text.trim() == _confirmPasswordController.text.trim()) {
+          final UserCredential userCredential =
+              await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
+           if (userCredential.user != null) {
+            await userCredential.user!.updateDisplayName(_displayNameController.text.trim());
+            print('Signup successful: ${userCredential.user!.uid}');
+            Navigator.pushReplacementNamed(context, '/habit_selection'); 
           }
+        } else {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'Passwords do not match.';
+          });
+          return;
         }
       } on FirebaseAuthException catch (e) {
         setState(() {
           _isLoading = false;
           _errorMessage = _handleFirebaseError(e.code);
         });
-        print('Firebase Login Error: ${e.code} - ${e.message}');
+        print('Firebase Signup Error: ${e.code} - ${e.message}');
       } catch (e) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'An unexpected error occurred.';
+          _errorMessage = 'An unexpected error occurred during signup.';
         });
-        print('Unexpected Login Error: $e');
+        print('Unexpected Signup Error: $e');
       } finally {
         if (_isLoading) {
           setState(() {
@@ -63,16 +64,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String _handleFirebaseError(String errorCode) {
     switch (errorCode) {
-      case 'user-not-found':
-        return 'No user found with that email.';
-      case 'wrong-password':
-        return 'Wrong password provided for that user.';
+      case 'weak-password':
+        return 'The password provided is too weak.';
+      case 'email-already-in-use':
+        return 'The account already exists for that email.';
       case 'invalid-email':
         return 'The email address is not valid.';
-      case 'user-disabled':
-        return 'The user account has been disabled.';
       default:
-        return 'An error occurred during login. Please try again.';
+        return 'An error occurred during signup. Please try again.';
     }
   }
 
@@ -80,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Login'),
+        title: Text('Sign Up'),
         backgroundColor: Colors.blue.shade400,
       ),
       body: Center(
@@ -92,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Welcome!',
+                  'Create an Account',
                   style: TextStyle(
                     fontSize: 24.0,
                     fontWeight: FontWeight.bold,
@@ -100,6 +99,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 SizedBox(height: 20.0),
+                TextFormField(
+                  controller: _displayNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Display Name (Optional)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person, color: Colors.blue.shade300),
+                  ),
+                ),
+                SizedBox(height: 15.0),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -129,10 +137,29 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
+                      return 'Please enter a password';
                     }
                     if (value.length < 6) {
                       return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 15.0),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock, color: Colors.blue.shade300),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
                     }
                     return null;
                   },
@@ -147,41 +174,26 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 SizedBox(height: 20.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton(
-                      onPressed: () {
-                        // TODO: Implement Forgot Password functionality
-                        print('Forgot Password pressed');
-                      },
-                      child: Text(
-                        'Forgot Password?',
-                        style: TextStyle(color: Colors.blue.shade500),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _login, // Disable button while loading
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade600,
-                        padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-                        textStyle: TextStyle(fontSize: 18),
-                      ),
-                      child: _isLoading
-                          ? CircularProgressIndicator(color: Colors.white)
-                          : Text('Login'),
-                    ),
-                  ],
+                ElevatedButton(
+                  onPressed: _isLoading ? null : _signup,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade600,
+                    padding: EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    textStyle: TextStyle(fontSize: 18),
+                  ),
+                  child: _isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text('Sign Up'),
                 ),
                 SizedBox(height: 15.0),
                 TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/signup');
-                    },
-                    child: Text(
-                      'Don\'t have an account? Sign up',
-                      style: TextStyle(color: Colors.blue.shade500),
-                    ),
+                  onPressed: () {
+                    Navigator.pop(context); // Go back to the Login Screen
+                  },
+                  child: Text(
+                    'Already have an account? Log in',
+                    style: TextStyle(color: Colors.blue.shade500),
+                  ),
                 ),
               ],
             ),

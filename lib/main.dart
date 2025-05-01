@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:project/views/screens/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:project/views/screens/auth/signup_screen.dart';
 import 'package:project/views/screens/habits/add_custom_habit_screen.dart';
 import 'package:project/views/screens/habits/daily_habit_tracker_screen.dart';
 import 'package:project/views/screens/leaderboard/leaderboard_screen.dart';
+import 'package:project/views/screens/main_screen/main_screen.dart';
 import 'package:project/views/screens/profile/profile_screen.dart';
 import 'firebase_options.dart';
 import 'package:project/views/screens/habits/habit_selection_screen.dart';
@@ -42,6 +44,10 @@ class MyApp extends StatelessWidget {
         '/daily_tracker': (context) => DailyHabitTrackerScreen(),
         '/profile': (context) => ProfileScreen(), 
         '/leaderboard': (context) => LeaderboardScreen(), 
+        '/signup': (context) => SignupScreen(),
+        '/main': (context) => MainScreen(), 
+
+
 
 
 
