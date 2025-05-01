@@ -33,8 +33,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      // home: LoginScreen(), 
-      home: LeaderboardScreen(), 
+      home: LoginScreen(), 
+      // home: LeaderboardScreen(), 
       routes: {
         '/login': (context) => LoginScreen(), // Define the login route (optional as it's the home)
         '/habit_selection': (context) => HabitSelectionScreen(), 

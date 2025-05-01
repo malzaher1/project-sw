@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/services/habit_service.dart';
 
 class HabitSelectionScreen extends StatefulWidget {
   @override
@@ -27,18 +28,20 @@ class _HabitSelectionScreenState extends State<HabitSelectionScreen> {
       print('Selected Habits: $_selectedHabits'); // For debugging
     });
   }
+  
+  final HabitService _habitService = HabitService();
 
-  void _proceedToDailyTracker() {
-  if (_selectedHabits.isNotEmpty) {
-    // TODO: Save selected habits to Firebase for the user's daily tracking
-    print('Proceeding with selected habits: $_selectedHabits');
-    Navigator.pushReplacementNamed(context, '/daily_tracker');
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Please select at least one habit to continue.')),
-    );
+  void _proceedToDailyTracker() async { // Make it async
+    if (_selectedHabits.isNotEmpty) {
+      await _habitService.saveSelectedHabits(_selectedHabits); // Save habits
+      print('Proceeding with selected habits: $_selectedHabits');
+      Navigator.pushReplacementNamed(context, '/daily_tracker');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select at least one habit to continue.')),
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {

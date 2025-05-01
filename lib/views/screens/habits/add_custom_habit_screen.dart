@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:project/services/habit_service.dart';
 
 class AddCustomHabitScreen extends StatefulWidget {
   @override
@@ -19,7 +20,11 @@ class _AddCustomHabitScreenState extends State<AddCustomHabitScreen> {
     });
   }
 
-  void _saveCustomHabit() {
+ 
+
+  final HabitService _habitService = HabitService();
+
+  void _saveCustomHabit() async { // Make it async
     if (_formKey.currentState!.validate()) {
       final habitName = _habitNameController.text.trim();
       if (_selectedCategory == null) {
@@ -29,6 +34,14 @@ class _AddCustomHabitScreenState extends State<AddCustomHabitScreen> {
         return;
       }
       int? dailyGoalCount = _isCountGoal ? int.tryParse(_goalCountController.text) : null;
+
+      await _habitService.saveCustomHabit(
+        name: habitName,
+        category: _selectedCategory,
+        isCountGoal: _isCountGoal,
+        goalCount: dailyGoalCount,
+      );
+      print : null;
 
       // TODO: Save the custom habit data (name, category, goal type, goal count)
       print('Saving custom habit: Name=$habitName, Category=$_selectedCategory, IsCountGoal=$_isCountGoal, GoalCount=$dailyGoalCount');
