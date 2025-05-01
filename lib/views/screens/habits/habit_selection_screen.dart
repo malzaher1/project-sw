@@ -45,12 +45,26 @@ class _HabitSelectionScreenState extends State<HabitSelectionScreen> {
         });
 
         await _habitService.saveSelectedHabitsWithCategory(habitsWithCategory); 
+<<<<<<< HEAD
         print('Proceeding with selected habits: $habitsWithCategory');
         Navigator.pushReplacementNamed(context, '/daily_tracker');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Please select at least one habit to continue.')),
         );
+=======
+      if (_isFirstTime) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('hasSelectedInitialHabits', true);
+        Navigator.pushNamed(context, '/daily_tracker'); 
+      } else {
+        Navigator.pushNamed(context, '/daily_tracker');
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please select at least one habit to continue.')),
+      );
+>>>>>>> b39f9d3a23a5096087af1780a2774a8c3fe8fdd5
       }
     }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:project/views/screens/habits/daily_habit_tracker_screen.dart';
 import 'package:project/views/screens/habits/habit_selection_screen.dart';
 import 'package:project/views/screens/leaderboard/leaderboard_screen.dart';
+import 'package:project/views/screens/main_screen/dashboard_screen.dart';
 import 'package:project/views/screens/profile/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   static List<Widget> _widgetOptions = <Widget>[
+    DashboardScreen(),
     DailyHabitTrackerScreen(),
     HabitSelectionScreen(),
     LeaderboardScreen(),
@@ -33,6 +35,10 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
+           BottomNavigationBarItem(
+            icon: Icon(Icons.home), // Example icon
+            label: 'Home',
+          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.check_box), // Example icon
             label: 'Daily',

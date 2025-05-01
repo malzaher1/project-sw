@@ -15,17 +15,30 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
   final HabitService _habitService = HabitService();
   bool _isLoading = true;
 
-  @override
+ @override
   void initState() {
     super.initState();
     _loadHabits();
   }
 
-   Future<void> _loadHabits() async {
+  Future<void> _loadHabits() async {
     setState(() {
       _isLoading = true;
     });
     _todaysHabits = await _habitService.getTodayUserHabits();
+    // Reset daily progress on load
+    _todaysHabits = _todaysHabits.map((habit) {
+      return Habit(
+        id: habit.id,
+        name: habit.name,
+        category: habit.category,
+        goalCount: habit.goalCount,
+        isCompleted: habit.isCompleted, // Keep general completion for now
+        isCompletedToday: false,
+        progress: habit.progress, // Keep general progress for now
+        progressToday: 0,
+      );
+    }).toList();
     _calculateProgress();
     setState(() {
       _isLoading = false;
@@ -35,27 +48,50 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
   void _toggleHabitCompletion(int index, bool? newValue) {
     if (newValue != null) {
       setState(() {
-        _todaysHabits[index].isCompleted = newValue;
+        _todaysHabits[index].isCompletedToday = newValue;
         _calculateProgress();
-        _pointsEarnedToday = _todaysHabits.where((habit) => habit.isCompleted).length * 10;
+        _pointsEarnedToday = _todaysHabits.where((habit) => habit.isCompletedToday).length * 10;
       });
-      print('Habit "${_todaysHabits[index].name}" completed: $newValue, Points: $_pointsEarnedToday');
-      _habitService.updateHabitCompletion(_todaysHabits[index].id!, newValue); 
+      _habitService.updateHabitCompletion(_todaysHabits[index].id!, newValue);
     }
   }
 
-   void _updateCountProgress(int index, int newProgress) {
+  void _deleteHabit(int index) async {
+    final habitToDelete = _todaysHabits[index];
+
     setState(() {
-      _todaysHabits[index].progress = newProgress;
+      _todaysHabits.removeAt(index);
       _calculateProgress();
-      if (_todaysHabits[index].progress == _todaysHabits[index].goalCount) {
+    });
+
+    // Delete from Firebase
+    try {
+      await _habitService.deleteHabit(habitToDelete.id!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${habitToDelete.name} deleted')),
+      );
+    } catch (e) {
+      setState(() {
+        _todaysHabits.insert(index, habitToDelete); // Re-insert on error
+        _calculateProgress();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting ${habitToDelete.name}')),
+      );
+      print('Error deleting habit: $e');
+    }
+  }
+
+     void _updateCountProgress(int index, int newProgress) {
+    setState(() {
+      _todaysHabits[index].progressToday = newProgress;
+      _calculateProgress();
+      if (_todaysHabits[index].progressToday == _todaysHabits[index].goalCount) {
         _pointsEarnedToday += 15;
       }
     });
-    print('Habit "${_todaysHabits[index].name}" progress: $newProgress, Points: $_pointsEarnedToday');
-    _habitService.updateHabitProgress(_todaysHabits[index].id!, newProgress); 
+    _habitService.updateHabitProgress(_todaysHabits[index].id!, newProgress);
   }
-
   void _calculateProgress() {
     _completedHabitsCount = _todaysHabits.where((habit) => habit.isCompleted || (habit.goalCount != null && habit.progress == habit.goalCount)).length;
     _totalHabitsCount = _todaysHabits.length;
@@ -102,11 +138,23 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
                     itemCount: _todaysHabits.length,
                     itemBuilder: (context, index) {
                       final habit = _todaysHabits[index];
-                      return Card(
-                        margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
+                      return Dismissible(
+                        key: Key(habit.id!), // Unique key for each item
+                        direction: DismissDirection.endToStart, // Swipe from right to left to dismiss
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.only(right: 20.0),
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) {
+                          _deleteHabit(index);
+                        },
+                        child: Card(
+                          margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: <Widget>[
                               Expanded(
@@ -153,6 +201,7 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
                             ],
                           ),
                         ),
+                        )
                       );
                     },
                   ),
