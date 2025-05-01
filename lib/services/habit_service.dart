@@ -101,47 +101,48 @@ class HabitService {
     }
   }
 
-  Future<void> updateHabitCompletion(String habitId, bool isCompletedToday) async {
+  Future<void> updateHabitCompletion(String habitId, bool isCompleted) async {
     User? user = _auth.currentUser;
     if (user == null) {
       print('No user logged in, cannot update habit completion.');
       return;
     }
 
-      try {
+    try {
       await _firestore
           .collection('users')
           .doc(user.uid)
           .collection('habits')
-          .doc(habitId)
-          .update({'isCompletedToday': isCompletedToday});
-      print('Updated habit completion for $habitId to $isCompletedToday');
+          .doc(habitId) // We need the document ID of the habit
+          .update({'isCompleted': isCompleted});
+      print('Updated habit completion for $habitId to $isCompleted');
     } catch (e) {
       print('Error updating habit completion: $e');
       // Optionally handle the error
     }
   }
 
-  Future<void> updateHabitProgress(String habitId, int progressToday) async {
+  Future<void> updateHabitProgress(String habitId, int progress) async {
     User? user = _auth.currentUser;
     if (user == null) {
       print('No user logged in, cannot update habit progress.');
       return;
     }
-    try{
-    await _firestore
+
+    try {
+      await _firestore
           .collection('users')
           .doc(user.uid)
           .collection('habits')
-          .doc(habitId)
-          .update({'progressToday': progressToday});
-      print('Updated habit progress for $habitId to $progressToday');
-  }
-    catch (e) {
+          .doc(habitId) // We need the document ID of the habit
+          .update({'progress': progress});
+      print('Updated habit progress for $habitId to $progress');
+    } catch (e) {
       print('Error updating habit progress: $e');
       // Optionally handle the error
     }
   }
+
 
 
   Future<void> deleteHabit(String habitId) async {
@@ -164,7 +165,6 @@ class HabitService {
       // Optionally handle the error
     }
   }
-
-
-
 }
+
+
