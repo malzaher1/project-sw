@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:project/services/habit_service.dart';
 
 class LeaderboardScreen extends StatefulWidget {
+  const LeaderboardScreen({super.key});
+
   @override
   _LeaderboardScreenState createState() => _LeaderboardScreenState();
 }
@@ -10,6 +13,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final _currentUserUid = FirebaseAuth.instance.currentUser?.uid;
   List<LeaderboardEntry> _leaderboardData = [];
   bool _isLoading = false;
+  final HabitService _habitService = HabitService(); 
 
   @override
   void initState() {
@@ -20,19 +24,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Future<void> _fetchLeaderboardData() async {
     setState(() {
       _isLoading = true;
-      _leaderboardData.clear(); // Clear previous data
+      _leaderboardData.clear();
     });
-    // TODO: Fetch leaderboard data from Firebase (order by points)
-    // For now, we'll use sample data
-    await Future.delayed(Duration(seconds: 1)); // Simulate loading delay
+    // _leaderboardData = await _habitService.getLeaderboardData();
     setState(() {
-      _leaderboardData = [
-        LeaderboardEntry(userId: 'user1', displayName: 'Alice', points: 250),
-        LeaderboardEntry(userId: 'user2', displayName: 'Bob', points: 310),
-        LeaderboardEntry(userId: _currentUserUid ?? 'me', displayName: 'You', points: 280),
-        LeaderboardEntry(userId: 'user3', displayName: 'Charlie', points: 200),
-        LeaderboardEntry(userId: 'user4', displayName: 'David', points: 350),
-      ]..sort((a, b) => b.points.compareTo(a.points)); // Sort by points descending
       _isLoading = false;
     });
   }
@@ -59,7 +54,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   final isCurrentUser = entry.userId == _currentUserUid;
                   return Card(
                     margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    color: isCurrentUser ? Colors.blue.shade100 : null, // Highlight current user
+                    color: isCurrentUser ? Colors.blue.shade100 : null,
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
@@ -73,7 +68,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             ),
                           ),
                           Text(
-                            '${entry.points} Points',
+                            '${entry.points} Points', // Display totalPoints
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
