@@ -21,7 +21,7 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
     _loadHabits();
   }
 
-  Future<void> _loadHabits() async {
+   Future<void> _loadHabits() async {
     setState(() {
       _isLoading = true;
     });
@@ -40,11 +40,11 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
         _pointsEarnedToday = _todaysHabits.where((habit) => habit.isCompleted).length * 10;
       });
       print('Habit "${_todaysHabits[index].name}" completed: $newValue, Points: $_pointsEarnedToday');
-      // TODO: Save the updated habit completion status to Firebase
+      _habitService.updateHabitCompletion(_todaysHabits[index].id!, newValue); 
     }
   }
 
-  void _updateCountProgress(int index, int newProgress) {
+   void _updateCountProgress(int index, int newProgress) {
     setState(() {
       _todaysHabits[index].progress = newProgress;
       _calculateProgress();
@@ -53,7 +53,7 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
       }
     });
     print('Habit "${_todaysHabits[index].name}" progress: $newProgress, Points: $_pointsEarnedToday');
-    // TODO: Save the updated count progress to Firebase
+    _habitService.updateHabitProgress(_todaysHabits[index].id!, newProgress); 
   }
 
   void _calculateProgress() {

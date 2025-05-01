@@ -21,8 +21,8 @@ class HabitService {
           .get();
 
       for (QueryDocumentSnapshot<Map<String, dynamic>> doc in snapshot.docs) {
-        habits.add(Habit.fromJson(doc.data()));
-      }
+        habits.add(Habit.fromJson(doc.data(), doc.id));
+        }
     } catch (e) {
       print('Error fetching user habits: $e');
       return [];
@@ -69,42 +69,7 @@ class HabitService {
     }
   }
 
-  // You can now remove or comment out the old saveSelectedHabits method:
-  /*
-  Future<void> saveSelectedHabits(Set<String> selectedHabits) async { ... }
-  */
-
-  // Future<void> saveSelectedHabits(Set<String> selectedHabits) async {
-  //   User? user = _auth.currentUser;
-  //   if (user == null) {
-  //     print('No user logged in, cannot save habits.');
-  //     return;
-  //   }
-
-  //   try {
-  //     CollectionReference<Map<String, dynamic>> habitsRef = _firestore
-  //         .collection('users')
-  //         .doc(user.uid)
-  //         .collection('habits');
-
-  //     for (String habitName in selectedHabits) {
-  //       // Check if the habit already exists to avoid duplicates (optional, depending on your needs)
-  //       QuerySnapshot<Map<String, dynamic>> existingHabit = await habitsRef
-  //           .where('name', isEqualTo: habitName)
-  //           .get();
-
-  //       if (existingHabit.docs.isEmpty) {
-  //         await habitsRef.add({'name': habitName, 'isCompleted': false, 'progress': 0});
-  //         print('Saved habit: $habitName');
-  //       } else {
-  //         print('Habit "$habitName" already exists for this user.');
-  //       }
-  //     }
-  //   } catch (e) {
-  //     print('Error saving selected habits: $e');
-  //     // Optionally handle the error
-  //   }
-  // }
+  
 
   Future<void> saveCustomHabit({
     required String name,
@@ -133,9 +98,50 @@ class HabitService {
       print('Saved custom habit: $name');
     } catch (e) {
       print('Error saving custom habit: $e');
+    }
+  }
+
+  Future<void> updateHabitCompletion(String habitId, bool isCompleted) async {
+    User? user = _auth.currentUser;
+    if (user == null) {
+      print('No user logged in, cannot update habit completion.');
+      return;
+    }
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('habits')
+          .doc(habitId) // We need the document ID of the habit
+          .update({'isCompleted': isCompleted});
+      print('Updated habit completion for $habitId to $isCompleted');
+    } catch (e) {
+      print('Error updating habit completion: $e');
       // Optionally handle the error
     }
   }
 
-  // TODO: Add methods for updating habit completion and progress.
+  Future<void> updateHabitProgress(String habitId, int progress) async {
+    User? user = _auth.currentUser;
+    if (user == null) {
+      print('No user logged in, cannot update habit progress.');
+      return;
+    }
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('habits')
+          .doc(habitId) // We need the document ID of the habit
+          .update({'progress': progress});
+      print('Updated habit progress for $habitId to $progress');
+    } catch (e) {
+      print('Error updating habit progress: $e');
+      // Optionally handle the error
+    }
+  }
 }
+
+
