@@ -6,6 +6,7 @@ import 'package:project/views/screens/auth/signup_screen.dart';
 import 'package:project/views/screens/habits/add_custom_habit_screen.dart';
 import 'package:project/views/screens/habits/daily_habit_tracker_screen.dart';
 import 'package:project/views/screens/leaderboard/leaderboard_screen.dart';
+import 'package:project/views/screens/main_screen/dashboard_screen.dart';
 import 'package:project/views/screens/main_screen/main_screen.dart';
 import 'package:project/views/screens/profile/profile_screen.dart';
 import 'firebase_options.dart';
@@ -46,6 +47,8 @@ class MyApp extends StatelessWidget {
         '/leaderboard': (context) => LeaderboardScreen(), 
         '/signup': (context) => SignupScreen(),
         '/main': (context) => MainScreen(), 
+        '/dashboard': (context) => DashboardScreen(), 
+
 
 
 

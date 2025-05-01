@@ -59,9 +59,9 @@ class _HabitSelectionScreenState extends State<HabitSelectionScreen> {
       if (_isFirstTime) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('hasSelectedInitialHabits', true);
-        Navigator.pushReplacementNamed(context, '/main'); 
+        Navigator.pushNamed(context, '/daily_tracker'); 
       } else {
-        Navigator.pushReplacementNamed(context, '/daily_tracker'); 
+        Navigator.pushNamed(context, '/daily_tracker');
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

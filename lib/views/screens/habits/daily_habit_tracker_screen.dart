@@ -44,6 +44,32 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
     }
   }
 
+  void _deleteHabit(int index) async {
+    final habitToDelete = _todaysHabits[index];
+
+    setState(() {
+      _todaysHabits.removeAt(index);
+      _calculateProgress();
+    });
+
+    // Delete from Firebase
+    try {
+      await _habitService.deleteHabit(habitToDelete.id!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${habitToDelete.name} deleted')),
+      );
+    } catch (e) {
+      setState(() {
+        _todaysHabits.insert(index, habitToDelete); // Re-insert on error
+        _calculateProgress();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting ${habitToDelete.name}')),
+      );
+      print('Error deleting habit: $e');
+    }
+  }
+
    void _updateCountProgress(int index, int newProgress) {
     setState(() {
       _todaysHabits[index].progress = newProgress;
@@ -102,11 +128,23 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
                     itemCount: _todaysHabits.length,
                     itemBuilder: (context, index) {
                       final habit = _todaysHabits[index];
-                      return Card(
-                        margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
+                      return Dismissible(
+                        key: Key(habit.id!), // Unique key for each item
+                        direction: DismissDirection.endToStart, // Swipe from right to left to dismiss
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.only(right: 20.0),
+                          child: Icon(Icons.delete, color: Colors.white),
+                        ),
+                        onDismissed: (direction) {
+                          _deleteHabit(index);
+                        },
+                        child: Card(
+                          margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: <Widget>[
                               Expanded(
@@ -153,6 +191,7 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
                             ],
                           ),
                         ),
+                        )
                       );
                     },
                   ),

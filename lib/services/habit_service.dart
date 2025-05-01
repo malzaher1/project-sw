@@ -142,6 +142,29 @@ class HabitService {
       // Optionally handle the error
     }
   }
+
+
+
+  Future<void> deleteHabit(String habitId) async {
+    User? user = _auth.currentUser;
+    if (user == null) {
+      print('No user logged in, cannot delete habit.');
+      return;
+    }
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('habits')
+          .doc(habitId)
+          .delete();
+      print('Deleted habit: $habitId');
+    } catch (e) {
+      print('Error deleting habit: $e');
+      // Optionally handle the error
+    }
+  }
 }
 
 
