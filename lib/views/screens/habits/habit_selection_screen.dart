@@ -59,8 +59,12 @@ class _HabitSelectionScreenState extends State<HabitSelectionScreen> {
       if (_isFirstTime) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('hasSelectedInitialHabits', true);
+        // Navigator.pop(context);
+        Navigator.pushNamed(context, '/main'); 
         Navigator.pushNamed(context, '/daily_tracker'); 
       } else {
+        // Navigator.pop(context);
+        Navigator.pushNamed(context, '/main'); 
         Navigator.pushNamed(context, '/daily_tracker');
       }
     } else {

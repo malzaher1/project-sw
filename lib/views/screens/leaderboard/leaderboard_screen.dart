@@ -18,6 +18,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   @override
   void initState() {
     super.initState();
+    print('Current User UID in Leaderboard: $_currentUserUid'); 
     _fetchLeaderboardData();
   }
 

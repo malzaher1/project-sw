@@ -31,7 +31,8 @@ class _SignupScreenState extends State<SignupScreen> {
            if (userCredential.user != null) {
             await userCredential.user!.updateDisplayName(_displayNameController.text.trim());
             print('Signup successful: ${userCredential.user!.uid}');
-            Navigator.pushReplacementNamed(context, '/habit_selection'); 
+            Navigator.pop(context);
+            Navigator.pushReplacementNamed(context, '/main'); 
           }
         } else {
           setState(() {

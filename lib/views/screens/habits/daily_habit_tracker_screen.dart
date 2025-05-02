@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:project/models/habit_model.dart';
 import 'package:project/services/habit_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DailyHabitTrackerScreen extends StatefulWidget {
   @override
@@ -82,6 +84,35 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
     _habitService.updateHabitProgress(_todaysHabits[index].id!, newProgress); 
   }
 
+void _markAllHabitsComplete() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    for (int i = 0; i < _todaysHabits.length; i++) {
+      final habit = _todaysHabits[i];
+      setState(() {
+        _todaysHabits[i].isCompletedToday = true;
+        if (habit.goalCount != null) {
+          _todaysHabits[i].progressToday = habit.goalCount!;
+        }
+      });
+      await _habitService.updateHabitCompletion(habit.id!, true);
+      if (habit.goalCount != null) {
+        await _habitService.updateHabitProgress(habit.id!, habit.goalCount!);
+      }
+      await _habitService.updateUserTotalPoints(userId, _calculatePointsForHabit(habit)); // Implement this
+    }
+    _calculateProgress();
+  }
+
+  int _calculatePointsForHabit(Habit habit) {
+    // Implement your point calculation logic here
+    return habit.goalCount == null ? 10 : 15; // Example
+  }
+
+
+  
+
   void _calculateProgress() {
     _completedHabitsCount = _todaysHabits.where((habit) => habit.isCompleted || (habit.goalCount != null && habit.progress == habit.goalCount)).length;
     _totalHabitsCount = _todaysHabits.length;
@@ -89,12 +120,69 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
 
   double get _completionPercentage => _totalHabitsCount > 0 ? _completedHabitsCount / _totalHabitsCount : 0.0;
 
+  Future<void> _finishDay() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    String? lastTrackedDate = prefs.getString('lastTrackedDate');
+    String currentDate = DateTime.now().toLocal().toString().split(' ')[0];
+
+    if (lastTrackedDate != currentDate) {
+      // Record today's progress (simplified: update isCompleted and progress on habit)
+      for (final habit in _todaysHabits) {
+        await _habitService.updateHabitCompletion(habit.id!, habit.isCompletedToday);
+        await _habitService.updateHabitProgress(habit.id!, habit.progressToday ?? 0);
+        // Points are already awarded when completing/updating, no need to re-award here in this simplified version
+      }
+
+      // Move to the next day (resetting local state)
+      setState(() {
+        _todaysHabits = _todaysHabits.map((habit) {
+          return Habit(
+            id: habit.id,
+            name: habit.name,
+            category: habit.category,
+            goalCount: habit.goalCount,
+            isCompleted: habit.isCompleted, // Keep general completion
+            isCompletedToday: false, // Reset daily completion
+            progress: habit.progress,     // Keep general progress
+            progressToday: 0,           // Reset daily progress
+          );
+        }).toList();
+        _pointsEarnedToday = 0;
+        _calculateProgress();
+      });
+
+      // Update last tracked date
+      await prefs.setString('lastTrackedDate', currentDate);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Day finished and progress recorded.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Today\'s progress has already been recorded.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Today\'s Habits'),
         backgroundColor: Colors.blue.shade400,
+        actions: [
+        IconButton(
+          icon: Icon(Icons.done_all),
+          onPressed: _markAllHabitsComplete,
+        ),
+          IconButton(
+          icon: Icon(Icons.skip_next),
+          onPressed: _finishDay,
+        ),
+        // ... (your existing actions or the debug button later)
+      ],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())

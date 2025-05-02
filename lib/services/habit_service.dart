@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:project/models/habit_model.dart';
+import 'package:project/views/screens/leaderboard/leaderboard_screen.dart';
 
 class HabitService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -165,6 +166,58 @@ class HabitService {
       // Optionally handle the error
     }
   }
+
+
+  Future<void> updateUserTotalPoints(String userId, int pointsToAdd) async {
+  try {
+    final userDocRef = _firestore.collection('users').doc(userId);
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(userDocRef);
+      if (!snapshot.exists) {
+        throw Exception("User does not exist!");
+      }
+      final currentPoints = snapshot.data()?['totalPoints'] as int? ?? 0;
+      final newTotalPoints = currentPoints + pointsToAdd;
+      transaction.update(userDocRef, {'totalPoints': newTotalPoints});
+    });
+    print('Added $pointsToAdd points to user $userId. New total: ');
+  } catch (e) {
+    print('Error updating total points for user $userId: ${e.toString()}');
+    // Optionally handle the error
+  }
+}
+
+
+Future<List<LeaderboardEntry>> getLeaderboardData() async {
+    print('getLeaderboardData() called'); 
+  List<LeaderboardEntry> leaderboardData = [];
+  try {
+    QuerySnapshot<Map<String, dynamic>> snapshot = await _firestore
+        .collection('users')
+        // .orderBy('totalPoints', descending: true)
+        .get();
+
+    print('Number of users fetched: ${snapshot.docs.length}'); // ADD THIS
+
+    for (QueryDocumentSnapshot<Map<String, dynamic>> doc in snapshot.docs) {
+      final data = doc.data();
+      print('User data: ${doc.id} - ${data.toString()}'); // ADD THIS
+      leaderboardData.add(
+        LeaderboardEntry(
+          userId: doc.id,
+          displayName: data['displayName'] as String? ?? 'Anonymous',
+          points: data['totalPoints'] as int? ?? 0,
+        ),
+      );
+    }
+  } catch (e) {
+    print('Error fetching leaderboard data: $e');
+    // Handle error
+  }
+  return leaderboardData;
+}
+
+
 }
 
 
