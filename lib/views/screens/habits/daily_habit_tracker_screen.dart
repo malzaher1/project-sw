@@ -143,16 +143,24 @@ int _calculatePointsForHabit(Habit habit) {
 
     final prefs = await SharedPreferences.getInstance();
     String? lastTrackedDate = prefs.getString('lastTrackedDate');
-    String currentDate = DateTime.now().toLocal().toString().split(' ')[0];
+    DateTime trackedDate;
 
-    if (lastTrackedDate != currentDate) {
-      // Record today's progress
-      for (final habit in _todaysHabits) {
-        await _habitService.updateHabitCompletion(habit.id!, habit.isCompletedToday);
-        await _habitService.updateHabitProgress(habit.id!, habit.progressToday ?? 0);
-      }
+    if (lastTrackedDate == null) {
+      trackedDate = DateTime.now().toLocal();
+    } else {
+      trackedDate = DateTime.parse(lastTrackedDate).toLocal();
+    }
 
-      // Move to the next day (resetting local state)
+    final nextDay = trackedDate.add(Duration(days: 1)).toString().split(' ')[0];
+
+    // Record today's progress
+    for (final habit in _todaysHabits) {
+      await _habitService.updateHabitCompletion(habit.id!, habit.isCompletedToday);
+      await _habitService.updateHabitProgress(habit.id!, habit.progressToday ?? 0);
+    }
+
+    // Move to the next day (resetting local state)
+    setState(() {
       _todaysHabits = _todaysHabits.map((habit) {
         return Habit(
           id: habit.id,
@@ -167,26 +175,27 @@ int _calculatePointsForHabit(Habit habit) {
       }).toList();
       _pointsEarnedToday = 0;
       _calculateProgress();
+    });
 
-      // Update last tracked date and trigger UI rebuild
-      final nextDay = DateTime.now().add(Duration(days: 1)).toLocal().toString().split(' ')[0];
-      await prefs.setString('lastTrackedDate', nextDay);
-      if (mounted) { // Check if the widget is still in the tree
-        setState(() {});
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Day finished and moved to $nextDay.')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Today\'s progress has already been recorded.')),
-      );
+    // Update last tracked date and trigger UI rebuild
+    await prefs.setString('lastTrackedDate', nextDay);
+    if (mounted) {
+      setState(() {});
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Day finished and moved to $nextDay.')),
+    );
   }
 
- @override
+  
+@override
   Widget build(BuildContext context) {
-    final currentDate = DateTime.now().toLocal().toString().split(' ')[0];
+    return FutureBuilder<String?>(
+      future: SharedPreferences.getInstance().then((prefs) => prefs.getString('lastTrackedDate')),
+      builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
+        final lastDate = snapshot.data;
+        final currentDate = lastDate ?? DateTime.now().toLocal().toString().split(' ')[0];
+
 
     return Scaffold(
       appBar: AppBar(
@@ -197,10 +206,7 @@ int _calculatePointsForHabit(Habit habit) {
             icon: Icon(Icons.done_all),
             onPressed: _markAllHabitsComplete,
           ),
-          IconButton( // The "Finish Day" button
-            icon: Icon(Icons.skip_next),
-            onPressed: _finishDay,
-          ),
+          // The "Finish Day" button is moved to the body
         ],
       ),
       body: _isLoading
@@ -209,9 +215,23 @@ int _calculatePointsForHabit(Habit habit) {
               children: <Widget>[
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Date: $currentDate', // Display the current date
-                    style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Date: $currentDate', // Display the tracked date
+                        style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                      ),
+                      ElevatedButton( // Moved "Finish Day" button
+                        onPressed: _finishDay,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade600,
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          textStyle: TextStyle(fontSize: 14),
+                        ),
+                        child: Text('Finish Day', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
                   ),
                 ),
                 Padding(
@@ -314,5 +334,8 @@ int _calculatePointsForHabit(Habit habit) {
             ),
       backgroundColor: Colors.blue.shade50,
     );
+      }
+    );
+
   }
 }
