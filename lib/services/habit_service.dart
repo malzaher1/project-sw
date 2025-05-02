@@ -196,6 +196,14 @@ class HabitService {
 
 Future<List<LeaderboardEntry>> getLeaderboardData() async {
     print('getLeaderboardData() called'); 
+
+
+User? user = _auth.currentUser;
+  if (user == null) {
+    print('No user logged in, cannot fetch leaderboard data.');
+    return [];
+  }
+
   List<LeaderboardEntry> leaderboardData = [];
   try {
     QuerySnapshot<Map<String, dynamic>> snapshot = await _firestore
