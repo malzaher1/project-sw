@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:project/main.dart';
 import 'package:project/services/habit_service.dart';
+import 'package:flutter/widgets.dart'; 
 
-class LeaderboardScreen extends StatefulWidget {
+
+class LeaderboardScreen extends StatefulWidget{
   const LeaderboardScreen({super.key});
 
   @override
   _LeaderboardScreenState createState() => _LeaderboardScreenState();
 }
 
-class _LeaderboardScreenState extends State<LeaderboardScreen> {
+class _LeaderboardScreenState extends State<LeaderboardScreen> with RouteAware {
   final User? _currentUser = FirebaseAuth.instance.currentUser;
   List<LeaderboardEntry> _leaderboardData = [];
   bool _isLoading = true;
@@ -23,6 +26,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       print('Current User UID in Leaderboard: ${_currentUser!.uid}');
     }
     _fetchLeaderboardData();
+  }
+
+
+    @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute); // Subscribe to route changes
+  }
+
+  @override
+  void didPopNext() {
+    // Called when the top route has been popped off, and the current route shows again.
+    _fetchLeaderboardData(); // Refresh data when the screen becomes visible
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this); // Unsubscribe when the widget is disposed
+    super.dispose();
   }
 
   Future<void> _fetchLeaderboardData() async {
@@ -53,7 +75,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Future<void> _refreshLeaderboard() async {
-    await _fetchLeaderboardData();
+    setState(() {
+      _isLoading = true;
+      _leaderboardData.clear();
+    });
+    _leaderboardData = await _habitService.getLeaderboardData();
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Widget _buildLeaderboardItem(LeaderboardEntry entry, int index) {

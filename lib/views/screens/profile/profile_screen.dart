@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // For theme persistence
+import 'package:project/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:project/services/habit_service.dart'; // Import HabitService
+import 'package:flutter/widgets.dart'; // Import widgets
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -9,11 +13,11 @@ class ProfileScreen extends StatefulWidget {
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with RouteAware {
   User? _currentUser;
-  int _totalPoints = 0; // Placeholder
-  int _completionStreak = 0; // Placeholder
+  int _totalPoints = 0;
   bool _isDarkMode = false;
+  final HabitService _habitService = HabitService(); // Instantiate HabitService
 
   @override
   void initState() {
@@ -22,16 +26,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fetchUserData();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
+  }
+
+  @override
+  void didPopNext() {
+    _fetchUserData(); // Refresh data when the screen becomes visible again
+  }
+
+  @override
+  void dispose() {
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
   Future<void> _fetchUserData() async {
-    // Get the current user from Firebase Auth
     _currentUser = FirebaseAuth.instance.currentUser;
-    // TODO: Fetch total points and completion streak from Firebase
-    // For now, we'll use placeholders
-    setState(() {
-      // Example values
-      _totalPoints = 150;
-      _completionStreak = 7;
-    });
+    if (_currentUser != null) {
+      try {
+        DocumentSnapshot<Map<String, dynamic>> userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_currentUser!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          setState(() {
+            _totalPoints = userDoc.data()?['totalPoints'] as int? ?? 0;
+            // TODO: Implement fetching completion streak later
+          });
+        } else {
+          print('Error: User document not found for UID: ${_currentUser!.uid}');
+        }
+      } catch (e) {
+        print('Error fetching user data: $e');
+      }
+    }
   }
 
   Future<void> _loadThemePreference() async {
@@ -44,7 +76,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _saveThemePreference(bool isDarkMode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isDarkMode', isDarkMode);
-    // TODO: Implement theme change in the app (using Provider or setState in the main app widget)
     setState(() {
       _isDarkMode = isDarkMode;
     });
@@ -53,7 +84,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
-      // Navigate back to the Login Screen after signing out
       Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       print('Error signing out: $e');
@@ -91,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             SizedBox(height: 16.0),
             Text(
-              'Completion Streak: $_completionStreak days',
+              'Completion Streak: 0 days', // Placeholder for now
               style: TextStyle(fontSize: 18.0),
             ),
             SizedBox(height: 24.0),
@@ -101,9 +131,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text('Dark Theme', style: TextStyle(fontSize: 16.0)),
                 Switch(
                   value: _isDarkMode,
-                  onChanged: (bool newValue) {
-                    _saveThemePreference(newValue);
-                  },
+                  onChanged: (bool newValue) => _saveThemePreference(newValue),
                   activeColor: Colors.blue.shade600,
                 ),
               ],

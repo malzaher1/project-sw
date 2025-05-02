@@ -15,6 +15,7 @@ import 'package:project/views/screens/habits/habit_selection_screen.dart';
 //   runApp(const MyApp());
 // }
 
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 
 void main() async {
@@ -54,6 +55,8 @@ class MyApp extends StatelessWidget {
 
 
       },
+      navigatorObservers: [routeObserver], 
+
     );
   }
 }

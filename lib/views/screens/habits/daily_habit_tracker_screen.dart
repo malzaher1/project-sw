@@ -36,16 +36,18 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
     });
   }
 
-   void _toggleHabitCompletion(int index, bool? newValue) {
+   Future<void> _toggleHabitCompletion(int index, bool? newValue) async {
     if (newValue != null) {
       setState(() { 
-        _todaysHabits[index].isCompleted = newValue;
+        // _todaysHabits[index].isCompleted = newValue;
         _todaysHabits[index].isCompletedToday = newValue; // Update daily completion
         _calculateProgress();
-        _pointsEarnedToday = _todaysHabits.where((habit) => habit.isCompleted).length * 10;
+        _pointsEarnedToday = _todaysHabits.where((habit) => habit.isCompletedToday).length * 10;
       });
       print('Habit "${_todaysHabits[index].name}" completed: ${_todaysHabits[index].isCompletedToday}, Points: $_pointsEarnedToday'); // ADD THIS
-      _habitService.updateHabitCompletion(_todaysHabits[index].id!, newValue);
+      // _habitService.updateHabitCompletion(_todaysHabits[index].id!, newValue);
+      await _habitService.updateHabitCompletion(_todaysHabits[index].id!, newValue);
+
     }
 
     setState(() {
@@ -83,9 +85,9 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
     }
   }
 
-   void _updateCountProgress(int index, int newProgress) {
+   Future<void> _updateCountProgress(int index, int newProgress) async {
     setState(() { 
-      _todaysHabits[index].progress = newProgress;
+      // _todaysHabits[index].progress = newProgress;
       _todaysHabits[index].progressToday = newProgress;
 
       _calculateProgress();
@@ -94,7 +96,9 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
       }
     });
     print('Habit "${_todaysHabits[index].name}" progress: ${_todaysHabits[index].progressToday}, Points: $_pointsEarnedToday'); // ADD THIS
-    _habitService.updateHabitProgress(_todaysHabits[index].id!, newProgress);
+    // _habitService.updateHabitProgress(_todaysHabits[index].id!, newProgress);
+    await _habitService.updateHabitProgress(_todaysHabits[index].id!, newProgress);
+
   }
 
 Future<void> _markAllHabitsComplete() async {
@@ -130,7 +134,7 @@ int _calculatePointsForHabit(Habit habit) {
   
 
   void _calculateProgress() {
-    _completedHabitsCount = _todaysHabits.where((habit) => habit.isCompleted || (habit.goalCount != null && habit.progress == habit.goalCount)).length;
+    // _completedHabitsCount = _todaysHabits.where((habit) => habit.isCompleted || (habit.goalCount != null && habit.progress == habit.goalCount)).length;
     _completedHabitsCount = _todaysHabits.where((habit) => habit.isCompletedToday || (habit.goalCount != null && habit.progressToday == habit.goalCount)).length;
     _totalHabitsCount = _todaysHabits.length;
   }
@@ -188,14 +192,16 @@ int _calculatePointsForHabit(Habit habit) {
   }
 
   
+
+
+
 @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: SharedPreferences.getInstance().then((prefs) => prefs.getString('lastTrackedDate')),
-      builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
+       return FutureBuilder<String?>(
+        future: SharedPreferences.getInstance().then((prefs) => prefs.getString('lastTrackedDate')),
+        builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
         final lastDate = snapshot.data;
         final currentDate = lastDate ?? DateTime.now().toLocal().toString().split(' ')[0];
-
 
     return Scaffold(
       appBar: AppBar(
@@ -206,7 +212,10 @@ int _calculatePointsForHabit(Habit habit) {
             icon: Icon(Icons.done_all),
             onPressed: _markAllHabitsComplete,
           ),
-          // The "Finish Day" button is moved to the body
+          IconButton( // The "Finish Day" button
+            icon: Icon(Icons.skip_next),
+            onPressed: _finishDay,
+          ),
         ],
       ),
       body: _isLoading
@@ -264,16 +273,9 @@ int _calculatePointsForHabit(Habit habit) {
                       final habit = _todaysHabits[index];
                       return Dismissible(
                         key: Key(habit.id!), // Unique key for each item
-                        direction: DismissDirection.endToStart, // Swipe from right to left to dismiss
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: EdgeInsets.only(right: 20.0),
-                          child: Icon(Icons.delete, color: Colors.white),
-                        ),
-                        onDismissed: (direction) {
-                          _deleteHabit(index);
-                        },
+                        direction: DismissDirection.endToStart, // Swipe to delete
+                        background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: EdgeInsets.only(right: 20.0), child: Icon(Icons.delete, color: Colors.white)),
+                        onDismissed: (direction) => _deleteHabit(index),
                         child: Card(
                           margin: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                           child: Padding(
@@ -285,23 +287,15 @@ int _calculatePointsForHabit(Habit habit) {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: <Widget>[
-                                      Text(
-                                        habit.name,
-                                        style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                                      ),
-                                      if (habit.category != null)
-                                        Text(
-                                          habit.category!,
-                                          style: TextStyle(color: Colors.grey.shade600),
-                                        ),
-                                      if (habit.goalCount != null)
-                                        Text('Goal: ${habit.progressToday}/${habit.goalCount}'), // Use progressToday
+                                      Text(habit.name, style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold)),
+                                      if (habit.category != null) Text(habit.category!, style: TextStyle(color: Colors.grey.shade600)),
+                                      if (habit.goalCount != null) Text('Goal: ${habit.progressToday}/${habit.goalCount}'), // USE progressToday
                                     ],
                                   ),
                                 ),
                                 if (habit.goalCount == null)
                                   Checkbox(
-                                    value: habit.isCompletedToday, // Use isCompletedToday
+                                    value: habit.isCompletedToday, // USE isCompletedToday
                                     onChanged: (bool? newValue) => _toggleHabitCompletion(index, newValue),
                                     activeColor: Colors.blue.shade600,
                                   )
@@ -309,17 +303,9 @@ int _calculatePointsForHabit(Habit habit) {
                                   Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: <Widget>[
-                                      IconButton(
-                                        icon: Icon(Icons.remove),
-                                        onPressed: habit.progressToday! > 0 ? () => _updateCountProgress(index, habit.progressToday! - 1) : null,
-                                      ),
-                                      Text('${habit.progressToday}/${habit.goalCount}'), // Use progressToday
-                                      IconButton(
-                                        icon: Icon(Icons.add),
-                                        onPressed: (habit.goalCount != null && habit.progressToday! < habit.goalCount!)
-                                            ? () => _updateCountProgress(index, habit.progressToday! + 1)
-                                            : null,
-                                      ),
+                                      IconButton(icon: Icon(Icons.remove), onPressed: habit.progressToday! > 0 ? () => _updateCountProgress(index, habit.progressToday! - 1) : null),
+                                      Text('${habit.progressToday}/${habit.goalCount}'), // USE progressToday
+                                      IconButton(icon: Icon(Icons.add), onPressed: (habit.goalCount != null && habit.progressToday! < habit.goalCount!) ? () => _updateCountProgress(index, habit.progressToday! + 1) : null),
                                     ],
                                   ),
                               ],
@@ -334,8 +320,7 @@ int _calculatePointsForHabit(Habit habit) {
             ),
       backgroundColor: Colors.blue.shade50,
     );
-      }
-    );
-
+        }
+       );
   }
 }

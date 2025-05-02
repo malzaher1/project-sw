@@ -102,7 +102,7 @@ class HabitService {
     }
   }
 
-  Future<void> updateHabitCompletion(String habitId, bool isCompleted) async {
+  Future<void> updateHabitCompletion(String habitId, bool isCompletedToday) async {
     User? user = _auth.currentUser;
     if (user == null) {
       print('No user logged in, cannot update habit completion.');
@@ -115,15 +115,15 @@ class HabitService {
           .doc(user.uid)
           .collection('habits')
           .doc(habitId) // We need the document ID of the habit
-          .update({'isCompleted': isCompleted});
-      print('Updated habit completion for $habitId to $isCompleted');
+          .update({'isCompleted': isCompletedToday});
+      print('Updated habit completion for $habitId to $isCompletedToday');
     } catch (e) {
       print('Error updating habit completion: $e');
       // Optionally handle the error
     }
   }
 
-  Future<void> updateHabitProgress(String habitId, int progress) async {
+  Future<void> updateHabitProgress(String habitId, int progressToday) async {
     User? user = _auth.currentUser;
     if (user == null) {
       print('No user logged in, cannot update habit progress.');
@@ -136,8 +136,8 @@ class HabitService {
           .doc(user.uid)
           .collection('habits')
           .doc(habitId) // We need the document ID of the habit
-          .update({'progress': progress});
-      print('Updated habit progress for $habitId to $progress');
+          .update({'progress': progressToday});
+      print('Updated habit progress for $habitId to $progressToday');
     } catch (e) {
       print('Error updating habit progress: $e');
       // Optionally handle the error
@@ -168,28 +168,23 @@ class HabitService {
   }
 
 
-  Future<void> updateUserTotalPoints(String userId, int pointsToAdd) async {
+  // In HabitService:
+Future<void> updateUserTotalPoints(String userId, int pointsToAdd) async {
   try {
     final userDocRef = _firestore.collection('users').doc(userId);
     await _firestore.runTransaction((transaction) async {
-      try {
-        final snapshot = await transaction.get(userDocRef);
-        if (!snapshot.exists) {
-          throw Exception("User does not exist!");
-        }
-        final currentPoints = snapshot.data()?['totalPoints'] as int? ?? 0;
-        final newTotalPoints = currentPoints + pointsToAdd;
-        transaction.update(userDocRef, {'totalPoints': newTotalPoints});
-      } catch (innerError) {
-        print('Inner transaction error: ${innerError.toString()}'); // Catch specific transaction error
-        return Future.error(innerError); // Propagate the error
+      final snapshot = await transaction.get(userDocRef);
+      if (!snapshot.exists) {
+        throw Exception("User does not exist!");
       }
-    }).catchError((error) {
-      print('Transaction failed with error: ${error.toString()}'); // Catch error from runTransaction
+      final currentPoints = snapshot.data()?['totalPoints'] as int? ?? 0;
+      final newTotalPoints = currentPoints + pointsToAdd;
+      transaction.update(userDocRef, {'totalPoints': newTotalPoints});
+      print('Transaction successful. Added $pointsToAdd points to user $userId. New total: $newTotalPoints'); // ADD THIS
     });
     print('Attempted to add $pointsToAdd points to user $userId.');
   } catch (e) {
-    print('Outer error: ${e.toString()}'); // Catch any other errors
+    print('Error updating total points for user $userId: ${e.toString()}');
   }
 }
 
@@ -230,6 +225,8 @@ User? user = _auth.currentUser;
   }
   return leaderboardData;
 }
+
+
 
 
 }

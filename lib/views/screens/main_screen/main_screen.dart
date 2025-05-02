@@ -30,12 +30,13 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
+      body: IndexedStack( // Use IndexedStack to keep all screens alive
+        index: _selectedIndex, // Show only the selected screen
+        children: _widgetOptions,
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-           BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.home), // Example icon
             label: 'Home',
           ),
