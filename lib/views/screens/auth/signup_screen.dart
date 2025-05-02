@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -28,11 +29,19 @@ class _SignupScreenState extends State<SignupScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
-           if (userCredential.user != null) {
+          if (userCredential.user != null) {
             await userCredential.user!.updateDisplayName(_displayNameController.text.trim());
-            print('Signup successful: ${userCredential.user!.uid}');
+            final userId = userCredential.user!.uid;
+            // Create a user document in Firestore
+            await FirebaseFirestore.instance.collection('users').doc(userId).set({
+              'displayName': _displayNameController.text.trim(),
+              'email': _emailController.text.trim(),
+              'totalPoints': 0, // Initialize total points
+              // Add any other initial user data here
+            });
+            print('Signup successful, user document created: $userId');
             Navigator.pop(context);
-            Navigator.pushReplacementNamed(context, '/main'); 
+            Navigator.pushReplacementNamed(context, '/main');
           }
         } else {
           setState(() {
@@ -75,6 +84,9 @@ class _SignupScreenState extends State<SignupScreen> {
         return 'An error occurred during signup. Please try again.';
     }
   }
+
+
+
 
   @override
   Widget build(BuildContext context) {

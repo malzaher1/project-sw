@@ -172,18 +172,24 @@ class HabitService {
   try {
     final userDocRef = _firestore.collection('users').doc(userId);
     await _firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(userDocRef);
-      if (!snapshot.exists) {
-        throw Exception("User does not exist!");
+      try {
+        final snapshot = await transaction.get(userDocRef);
+        if (!snapshot.exists) {
+          throw Exception("User does not exist!");
+        }
+        final currentPoints = snapshot.data()?['totalPoints'] as int? ?? 0;
+        final newTotalPoints = currentPoints + pointsToAdd;
+        transaction.update(userDocRef, {'totalPoints': newTotalPoints});
+      } catch (innerError) {
+        print('Inner transaction error: ${innerError.toString()}'); // Catch specific transaction error
+        return Future.error(innerError); // Propagate the error
       }
-      final currentPoints = snapshot.data()?['totalPoints'] as int? ?? 0;
-      final newTotalPoints = currentPoints + pointsToAdd;
-      transaction.update(userDocRef, {'totalPoints': newTotalPoints});
+    }).catchError((error) {
+      print('Transaction failed with error: ${error.toString()}'); // Catch error from runTransaction
     });
-    print('Added $pointsToAdd points to user $userId. New total: ');
+    print('Attempted to add $pointsToAdd points to user $userId.');
   } catch (e) {
-    print('Error updating total points for user $userId: ${e.toString()}');
-    // Optionally handle the error
+    print('Outer error: ${e.toString()}'); // Catch any other errors
   }
 }
 

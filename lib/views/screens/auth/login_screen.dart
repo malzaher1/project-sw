@@ -4,6 +4,8 @@ import 'package:project/models/habit_model.dart';
 import 'package:project/services/habit_service.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -34,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // Check if the user has any habits to determine if it's the first login
           List<Habit> existingHabits = await _habitService.getTodayUserHabits();
           if (existingHabits.isEmpty) {
-            Navigator.pushReplacementNamed(context, '/habit_selection');
+            Navigator.pushReplacementNamed(context, '/main');
           } else {
             Navigator.pushReplacementNamed(context, '/main');
           }

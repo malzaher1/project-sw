@@ -16,6 +16,8 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
   int _pointsEarnedToday = 0;
   final HabitService _habitService = HabitService();
   bool _isLoading = true;
+  final currentDate = DateTime.now().toLocal().toString().split(' ')[0];
+
 
   @override
   void initState() {
@@ -34,17 +36,26 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
     });
   }
 
-  void _toggleHabitCompletion(int index, bool? newValue) {
+   void _toggleHabitCompletion(int index, bool? newValue) {
     if (newValue != null) {
-      setState(() {
+      setState(() { 
         _todaysHabits[index].isCompleted = newValue;
+        _todaysHabits[index].isCompletedToday = newValue; // Update daily completion
         _calculateProgress();
         _pointsEarnedToday = _todaysHabits.where((habit) => habit.isCompleted).length * 10;
       });
-      print('Habit "${_todaysHabits[index].name}" completed: $newValue, Points: $_pointsEarnedToday');
-      _habitService.updateHabitCompletion(_todaysHabits[index].id!, newValue); 
+      print('Habit "${_todaysHabits[index].name}" completed: ${_todaysHabits[index].isCompletedToday}, Points: $_pointsEarnedToday'); // ADD THIS
+      _habitService.updateHabitCompletion(_todaysHabits[index].id!, newValue);
     }
+
+    setState(() {
+    _todaysHabits[index].isCompletedToday = newValue!;
+    });
+
+    _calculateProgress();
+    _pointsEarnedToday = _todaysHabits.where((habit) => habit.isCompletedToday).length * 10;
   }
+
 
   void _deleteHabit(int index) async {
     final habitToDelete = _todaysHabits[index];
@@ -73,48 +84,54 @@ class _DailyHabitTrackerScreenState extends State<DailyHabitTrackerScreen> {
   }
 
    void _updateCountProgress(int index, int newProgress) {
-    setState(() {
+    setState(() { 
       _todaysHabits[index].progress = newProgress;
+      _todaysHabits[index].progressToday = newProgress;
+
       _calculateProgress();
       if (_todaysHabits[index].progress == _todaysHabits[index].goalCount) {
         _pointsEarnedToday += 15;
       }
     });
-    print('Habit "${_todaysHabits[index].name}" progress: $newProgress, Points: $_pointsEarnedToday');
-    _habitService.updateHabitProgress(_todaysHabits[index].id!, newProgress); 
+    print('Habit "${_todaysHabits[index].name}" progress: ${_todaysHabits[index].progressToday}, Points: $_pointsEarnedToday'); // ADD THIS
+    _habitService.updateHabitProgress(_todaysHabits[index].id!, newProgress);
   }
 
-void _markAllHabitsComplete() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
+Future<void> _markAllHabitsComplete() async {
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+  if (userId == null) return;
 
+  List<Future<void>> futures = []; // To store all Firebase update Futures
+
+  setState(() {
     for (int i = 0; i < _todaysHabits.length; i++) {
       final habit = _todaysHabits[i];
-      setState(() {
-        _todaysHabits[i].isCompletedToday = true;
-        if (habit.goalCount != null) {
-          _todaysHabits[i].progressToday = habit.goalCount!;
-        }
-      });
-      await _habitService.updateHabitCompletion(habit.id!, true);
+      _todaysHabits[i].isCompletedToday = true;
       if (habit.goalCount != null) {
-        await _habitService.updateHabitProgress(habit.id!, habit.goalCount!);
+        _todaysHabits[i].progressToday = habit.goalCount!;
       }
-      await _habitService.updateUserTotalPoints(userId, _calculatePointsForHabit(habit)); // Implement this
+      futures.add(_habitService.updateHabitCompletion(habit.id!, true));
+      if (habit.goalCount != null) {
+        futures.add(_habitService.updateHabitProgress(habit.id!, habit.goalCount!));
+      }
+      futures.add(_habitService.updateUserTotalPoints(userId, _calculatePointsForHabit(habit)));
     }
-    _calculateProgress();
-  }
+  });
 
-  int _calculatePointsForHabit(Habit habit) {
-    // Implement your point calculation logic here
-    return habit.goalCount == null ? 10 : 15; // Example
-  }
+  await Future.wait(futures); // Wait for all Firebase updates to complete
+  _calculateProgress();
+}
+
+int _calculatePointsForHabit(Habit habit) {
+  return habit.goalCount == null ? 10 : 15;
+}
 
 
   
 
   void _calculateProgress() {
     _completedHabitsCount = _todaysHabits.where((habit) => habit.isCompleted || (habit.goalCount != null && habit.progress == habit.goalCount)).length;
+    _completedHabitsCount = _todaysHabits.where((habit) => habit.isCompletedToday || (habit.goalCount != null && habit.progressToday == habit.goalCount)).length;
     _totalHabitsCount = _todaysHabits.length;
   }
 
@@ -129,35 +146,36 @@ void _markAllHabitsComplete() async {
     String currentDate = DateTime.now().toLocal().toString().split(' ')[0];
 
     if (lastTrackedDate != currentDate) {
-      // Record today's progress (simplified: update isCompleted and progress on habit)
+      // Record today's progress
       for (final habit in _todaysHabits) {
         await _habitService.updateHabitCompletion(habit.id!, habit.isCompletedToday);
         await _habitService.updateHabitProgress(habit.id!, habit.progressToday ?? 0);
-        // Points are already awarded when completing/updating, no need to re-award here in this simplified version
       }
 
       // Move to the next day (resetting local state)
-      setState(() {
-        _todaysHabits = _todaysHabits.map((habit) {
-          return Habit(
-            id: habit.id,
-            name: habit.name,
-            category: habit.category,
-            goalCount: habit.goalCount,
-            isCompleted: habit.isCompleted, // Keep general completion
-            isCompletedToday: false, // Reset daily completion
-            progress: habit.progress,     // Keep general progress
-            progressToday: 0,           // Reset daily progress
-          );
-        }).toList();
-        _pointsEarnedToday = 0;
-        _calculateProgress();
-      });
+      _todaysHabits = _todaysHabits.map((habit) {
+        return Habit(
+          id: habit.id,
+          name: habit.name,
+          category: habit.category,
+          goalCount: habit.goalCount,
+          isCompleted: habit.isCompleted,
+          isCompletedToday: false,
+          progress: habit.progress,
+          progressToday: 0,
+        );
+      }).toList();
+      _pointsEarnedToday = 0;
+      _calculateProgress();
 
-      // Update last tracked date
-      await prefs.setString('lastTrackedDate', currentDate);
+      // Update last tracked date and trigger UI rebuild
+      final nextDay = DateTime.now().add(Duration(days: 1)).toLocal().toString().split(' ')[0];
+      await prefs.setString('lastTrackedDate', nextDay);
+      if (mounted) { // Check if the widget is still in the tree
+        setState(() {});
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Day finished and progress recorded.')),
+        SnackBar(content: Text('Day finished and moved to $nextDay.')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -166,28 +184,36 @@ void _markAllHabitsComplete() async {
     }
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
+    final currentDate = DateTime.now().toLocal().toString().split(' ')[0];
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Today\'s Habits'),
         backgroundColor: Colors.blue.shade400,
         actions: [
-        IconButton(
-          icon: Icon(Icons.done_all),
-          onPressed: _markAllHabitsComplete,
-        ),
           IconButton(
-          icon: Icon(Icons.skip_next),
-          onPressed: _finishDay,
-        ),
-        // ... (your existing actions or the debug button later)
-      ],
+            icon: Icon(Icons.done_all),
+            onPressed: _markAllHabitsComplete,
+          ),
+          IconButton( // The "Finish Day" button
+            icon: Icon(Icons.skip_next),
+            onPressed: _finishDay,
+          ),
+        ],
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : Column(
               children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    'Date: $currentDate', // Display the current date
+                    style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -233,53 +259,53 @@ void _markAllHabitsComplete() async {
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: <Widget>[
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      habit.name,
-                                      style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-                                    ),
-                                    if (habit.category != null)
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: <Widget>[
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: <Widget>[
                                       Text(
-                                        habit.category!,
-                                        style: TextStyle(color: Colors.grey.shade600),
+                                        habit.name,
+                                        style: TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
                                       ),
-                                    if (habit.goalCount != null)
-                                      Text('Goal: ${habit.progress}/${habit.goalCount}'),
-                                  ],
+                                      if (habit.category != null)
+                                        Text(
+                                          habit.category!,
+                                          style: TextStyle(color: Colors.grey.shade600),
+                                        ),
+                                      if (habit.goalCount != null)
+                                        Text('Goal: ${habit.progressToday}/${habit.goalCount}'), // Use progressToday
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              if (habit.goalCount == null)
-                                Checkbox(
-                                  value: habit.isCompleted,
-                                  onChanged: (bool? newValue) => _toggleHabitCompletion(index, newValue),
-                                  activeColor: Colors.blue.shade600,
-                                )
-                              else
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: <Widget>[
-                                    IconButton(
-                                      icon: Icon(Icons.remove),
-                                      onPressed: habit.progress > 0 ? () => _updateCountProgress(index, habit.progress - 1) : null,
-                                    ),
-                                    Text('${habit.progress}/${habit.goalCount}'),
-                                    IconButton(
-                                      icon: Icon(Icons.add),
-                                      onPressed: (habit.goalCount != null && habit.progress < habit.goalCount!)
-                                          ? () => _updateCountProgress(index, habit.progress + 1)
-                                          : null,
-                                    ),
-                                  ],
-                                ),
-                            ],
+                                if (habit.goalCount == null)
+                                  Checkbox(
+                                    value: habit.isCompletedToday, // Use isCompletedToday
+                                    onChanged: (bool? newValue) => _toggleHabitCompletion(index, newValue),
+                                    activeColor: Colors.blue.shade600,
+                                  )
+                                else
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      IconButton(
+                                        icon: Icon(Icons.remove),
+                                        onPressed: habit.progressToday! > 0 ? () => _updateCountProgress(index, habit.progressToday! - 1) : null,
+                                      ),
+                                      Text('${habit.progressToday}/${habit.goalCount}'), // Use progressToday
+                                      IconButton(
+                                        icon: Icon(Icons.add),
+                                        onPressed: (habit.goalCount != null && habit.progressToday! < habit.goalCount!)
+                                            ? () => _updateCountProgress(index, habit.progressToday! + 1)
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
-                        )
                       );
                     },
                   ),
